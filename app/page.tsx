@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useAuthActions } from "./hooks/useAuthActions";
-import { useAuth } from "./contexts/AuthContext";
+import { useAuthActions } from "@/hooks/useAuthActions";
+import { useAuth } from "@/contexts/AuthContext" ; 
 
 export default function Home() {
   const [isSignup, setIsSignup] = useState(true);
