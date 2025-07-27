@@ -23,9 +23,6 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .get();
 
-
-    
-
     if (!existingReflection.empty) {
       return NextResponse.json(
         { 
@@ -72,17 +69,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    console.log("The value of userId is ", userId)
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'userId parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    // Query Firestore directly with userId filter
     const reflectionsSnapshot = await db.collection('reflections')
-      .orderBy('createdAt', 'desc')
-      .limit(10)
+      .where('userId', '==', userId)
       .get();
 
     const reflections = reflectionsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+
+    console.log("The value of reflections is ", reflections)
 
     return NextResponse.json({ reflections });
   } catch (error) {
