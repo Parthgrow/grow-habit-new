@@ -12,6 +12,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, TrendingUp } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface Reflection {
   id: string;
@@ -24,25 +26,19 @@ interface Reflection {
 }
 
 export default function ProgressPage() {
-  const [selectedUser, setSelectedUser] = useState("");
+  const { user } = useAuth();
   const [reflections, setReflections] = useState<Reflection[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const users = [
-    { id: "parth", name: "Parth" },
-    { id: "john", name: "John" },
-    { id: "jane", name: "Jane" },
-  ];
-
   const fetchReflections = async () => {
-    if (!selectedUser) return;
+    if (!user?.uid) return;
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/reflection?userId=${selectedUser}`);
+      const response = await fetch(`/api/reflection?userId=${user.uid}`);
       if (response.ok) {
         const data = await response.json();
-        console.log("the value of data", data) ; 
+        console.log("the value of data", data);
         setReflections(data.reflections);
       }
     } catch (error) {
@@ -54,7 +50,7 @@ export default function ProgressPage() {
 
   useEffect(() => {
     fetchReflections();
-  }, [selectedUser]);
+  }, [user?.uid]);
 
   const getProgressColor = (progress: string) => {
     switch (progress) {
@@ -89,40 +85,33 @@ export default function ProgressPage() {
   const dayGrid = createDayGrid();
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Progress Tracker
-          </h1>
-          <p className="text-gray-600">
-            Track your habit progress and reflections
-          </p>
-        </div>
-
-        {/* User Filter */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="max-w-md">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select User
-            </label>
-            <Select value={selectedUser} onValueChange={setSelectedUser}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a user" />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Progress Tracker
+            </h1>
+            <p className="text-gray-600">
+              Track your habit progress and reflections
+            </p>
           </div>
-        </div>
 
-        {/* Progress Display */}
-        {selectedUser && (
+          {/* User Info */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div className="max-w-md">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                User
+              </label>
+              <div className="p-3 bg-gray-50 rounded-md border">
+                <p className="text-sm text-gray-900">
+                  {user?.displayName || user?.email || "Unknown User"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Display */}
           <div className="space-y-6">
             {/* Reflection Rate Stat */}
             <Card>
@@ -192,22 +181,8 @@ export default function ProgressPage() {
               </CardContent>
             </Card>
           </div>
-        )}
-
-        {!selectedUser && (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Select a User
-              </h3>
-              <p className="text-gray-600">
-                Choose a user to view their progress and reflections
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
