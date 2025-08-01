@@ -61,7 +61,7 @@ export default function ReflectionPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({...formData, userName : user?.displayName}),
+        body: JSON.stringify({...formData, userName : user?.displayName, habitId : user?.habitId}),
       });
 
       const data = await response.json();
@@ -169,6 +169,7 @@ export default function ReflectionPage() {
                   <SelectItem value="gateway">Gateway</SelectItem>
                   <SelectItem value="plus">Plus</SelectItem>
                   <SelectItem value="elite">Elite</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
                 </SelectContent>
               </Select>
             </div>

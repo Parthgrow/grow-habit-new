@@ -6,6 +6,7 @@ interface User {
   uid: string;
   email: string | null;
   displayName: string | null;
+  habitId: string | null;
 }
 
 interface AuthContextType {
@@ -18,6 +19,8 @@ interface AuthContextType {
   ) => Promise<boolean>;
   signIn: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
+  updateUserData: (newData: Partial<User>) => void;
+  refetchUserData: () => Promise<void>; 
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -125,8 +128,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const updateUserData = (newData: Partial<User>) => {
+
+
+    setUser((prev) => {
+      if (!prev) return null;
+      const updatedUser = { ...prev, ...newData };
+
+      console.log("the value of updated user is ", updatedUser); 
+      localStorage.setItem("userData", JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  };
+
+  const refetchUserData = async () => {
+    if (!user?.uid) return;
+
+    try {
+      const response = await fetch(`/api/users/${user.uid}`); // API CALL
+      const data = await response.json();
+
+      if (response.ok && data.user) {
+        const updatedUser = {
+          uid: data.user.id,
+          email: data.user.email,
+          displayName: data.user.name,
+          habitId: data.user.habitId,
+        };
+        setUser(updatedUser);
+        localStorage.setItem("userData", JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error("Error refetching user data:", error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{ user, loading, signUp, signIn, signOut, updateUserData, refetchUserData }}
+    >
       {children}
     </AuthContext.Provider>
   );

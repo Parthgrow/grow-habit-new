@@ -4,11 +4,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAuthActions } from "@/hooks/useAuthActions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function Page() {
-  const { user, loading } = useAuth();
+  const { user, loading, updateUserData } = useAuth();
   const { signOut } = useAuthActions();
+  const [habitLoading, setHabitLoading] = useState(false);
+  const [habitData, setHabitData] = useState({
+    habitName: "",
+    habitStatements: "",
+  });
+
+  console.log("the value of user is ", user); 
 
   if (loading) {
     return (
@@ -46,6 +57,138 @@ export default function Page() {
     );
   }
 
+  // Show habit creation form if user has no habit
+  if (!user.habitId) {
+    const handleCreateHabit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setHabitLoading(true);
+
+      if (!user) {
+        toast.error("User not authenticated");
+        setHabitLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/habits", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: user.uid,
+            habitName: habitData.habitName,
+            habitStatements: habitData.habitStatements,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Update the user's habitId in AuthContext
+          updateUserData({ habitId: data.id });
+          toast.success("Habit created successfully!");
+        } else {
+          if (data.error === "DUPLICATE_ENTRY") {
+            toast.error("You already have a habit created!");
+          } else {
+            toast.error(data.error || "Failed to create habit");
+          }
+        }
+      } catch (error) {
+        console.error("Error creating habit:", error);
+        toast.error("Failed to create habit");
+      } finally {
+        setHabitLoading(false);
+      }
+    };
+
+    const handleInputChange = (
+      e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    ) => {
+      const { name, value } = e.target;
+      setHabitData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center text-2xl">
+                Create Your First Habit
+              </CardTitle>
+              <p className="text-center text-gray-600">
+                Let's start your habit tracking journey by defining your first
+                habit
+              </p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCreateHabit} className="space-y-6">
+                <div>
+                  <label
+                    htmlFor="habitName"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Habit Name *
+                  </label>
+                  <Input
+                    id="habitName"
+                    name="habitName"
+                    type="text"
+                    placeholder="e.g., Morning Exercise, Reading, Meditation"
+                    value={habitData.habitName}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="habitStatements"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Habit Statements *
+                  </label>
+                  <Textarea
+                    id="habitStatements"
+                    name="habitStatements"
+                    placeholder="Describe your habit in detail. What exactly will you do? When? How often? Be specific about your commitment."
+                    value={habitData.habitStatements}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full min-h-[120px]"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Be specific about what you want to achieve and how you'll
+                    measure success.
+                  </p>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={
+                    habitLoading ||
+                    !habitData.habitName ||
+                    !habitData.habitStatements
+                  }
+                  className="w-full"
+                >
+                  {habitLoading ? "Creating..." : "Create Habit"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show dashboard if user has a habit
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-6xl mx-auto">
@@ -105,6 +248,29 @@ export default function Page() {
           </Card>
         </div>
 
+        {/* Habit Information */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <span>🎯</span>
+              <span>Your Current Habit</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Habit ID: {user.habitId}
+                </h3>
+                <p className="text-gray-600">
+                  You have successfully created a habit! Your habit ID is stored
+                  and ready for tracking.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* User Info */}
         <Card className="mt-8">
           <CardHeader>
@@ -120,6 +286,9 @@ export default function Page() {
               </p>
               <p>
                 <strong>User ID:</strong> {user.uid}
+              </p>
+              <p>
+                <strong>Habit ID:</strong> {user.habitId}
               </p>
             </div>
           </CardContent>

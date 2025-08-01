@@ -35,9 +35,7 @@ export async function POST(request: NextRequest) {
       name: displayName || email.split('@')[0],
       email: email,
       password: password, // Note: In production, you might want to hash this or not store it
-      habitName: null,
-      habitStatements: null,
-      plusValue: null,
+      habitId : null, 
       createdAt: new Date(),
       updatedAt: new Date()
     };
