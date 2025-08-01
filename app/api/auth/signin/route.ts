@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/firebase';
+import { auth, db } from '@/firebase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,10 +16,21 @@ export async function POST(request: NextRequest) {
     // Get user by email
     const userRecord = await auth.getUserByEmail(email);
 
+    // Get user data from Firestore to include habitId
+    const userDoc = await db.collection('users').doc(userRecord.uid).get();
+    let habitId = null;
+    let displayName = userRecord.displayName;
+    
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      habitId = userData?.habitId || null;
+      displayName = userData?.name || userRecord.displayName;
+    }
+
     // Create custom JWT token
     const customToken = await auth.createCustomToken(userRecord.uid, {
       email: userRecord.email,
-      displayName: userRecord.displayName,
+      displayName: displayName,
     });
 
     return NextResponse.json({
@@ -28,7 +39,8 @@ export async function POST(request: NextRequest) {
       user: {
         uid: userRecord.uid,
         email: userRecord.email,
-        displayName: userRecord.displayName,
+        displayName: displayName,
+        habitId: habitId,
       },
       token: customToken,
     });
