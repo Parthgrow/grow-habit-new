@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/firebase';
+import { auth, db } from '@/firebase';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, displayName } = await request.json();
+    const { email, password, displayName} = await request.json();
 
     // Validate required fields
     if (!email || !password) {
@@ -13,12 +13,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if user already exists in Firestore
+    const existingUserQuery = await db.collection('users').where('email', '==', email).get();
+    if (!existingUserQuery.empty) {
+      return NextResponse.json(
+        { error: 'User already exists' },
+        { status: 409 }
+      );
+    }
+
     // Create user with Firebase Admin SDK
     const userRecord = await auth.createUser({
       email,
       password,
       displayName: displayName || email.split('@')[0], // Use email prefix as display name if not provided
     });
+
+    // Create user document in Firestore
+    const userData = {
+      id: userRecord.uid,
+      name: displayName || email.split('@')[0],
+      email: email,
+      password: password, // Note: In production, you might want to hash this or not store it
+      habitName: null,
+      habitStatements: null,
+      plusValue: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    await db.collection('users').doc(userRecord.uid).set(userData);
 
     // Create custom JWT token
     const customToken = await auth.createCustomToken(userRecord.uid, {
@@ -33,6 +57,7 @@ export async function POST(request: NextRequest) {
         uid: userRecord.uid,
         email: userRecord.email,
         displayName: userRecord.displayName,
+  
       },
       token: customToken,
     }, { status: 201 });

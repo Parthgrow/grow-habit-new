@@ -5,8 +5,7 @@ import { nanoid } from 'nanoid';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log("The value of body is ", body) ; 
-    const { userId, habitProgress, reflection, day } = body;
+    const { userId, habitProgress, reflection, day, userName } = body;
 
     // Validate required fields
     if (!userId || !habitProgress || !reflection || day === null || day === undefined) {
@@ -46,6 +45,7 @@ export async function POST(request: NextRequest) {
       day,
       createdAt: new Date(),
       updatedAt: new Date(),
+      userName
     };
 
     // Add to Firestore using the generated ID as document ID
@@ -73,7 +73,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    console.log("The value of userId is ", userId)
 
     if (!userId) {
       return NextResponse.json(
@@ -91,8 +90,6 @@ export async function GET(request: NextRequest) {
       id: doc.id,
       ...doc.data()
     }));
-
-    console.log("The value of reflections is ", reflections)
 
     return NextResponse.json({ reflections });
   } catch (error) {

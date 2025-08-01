@@ -55,24 +55,19 @@ export default function ReflectionPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    console.log("the value of formData is ", formData);
-
     try {
       const response = await fetch("/api/reflection", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({...formData, userName : user?.displayName}),
       });
-
-      console.log("the value of response is ", response);
 
       const data = await response.json();
 
       if (response.ok) {
         toast.success("Reflection submitted successfully!");
-        console.log("Reflection submitted successfully");
         // Reset form but keep the user ID
         setFormData({
           userId: user?.uid || "",
@@ -96,6 +91,7 @@ export default function ReflectionPage() {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <ProtectedRoute>
