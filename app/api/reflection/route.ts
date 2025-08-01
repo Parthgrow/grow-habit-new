@@ -5,7 +5,7 @@ import { nanoid } from 'nanoid';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, habitProgress, reflection, day, userName } = body;
+    const { userId, habitProgress, reflection, day, userName, habitId } = body;
 
     // Validate required fields
     if (!userId || !habitProgress || !reflection || day === null || day === undefined) {
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
     const reflectionData = {
       id: reflectionId,
       userId,
+      habitId,
       habitProgress,
       reflection,
       day,
