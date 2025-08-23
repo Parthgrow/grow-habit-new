@@ -16,11 +16,14 @@ export default function DatePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddForm, setShowAddForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formDataReal, setFormDataReal] = useState({
     date: "",
-    real: "",
-    ideal: "",
+    value : "",
   });
+  const [formDataIdeal, setFormDataIdeal] = useState({
+    date : "", 
+    value : ""
+  })
   const itemsPerPage = 10;
   const [dateReflection, setDateReflection] = useState<any>([]) ; 
 
@@ -29,30 +32,28 @@ export default function DatePage() {
   // Calculate pagination
 
 
-
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitReal = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     console.log("formdata value is ", {
-      ...formData,
+      ...formDataReal,
       userId: user?.uid,
       habitId: user?.habitId,
     });
 
     try {
       // Submit real value
-      if (formData.real) {
+      if (formDataReal.value) {
         const realResponse = await fetch("/api/date-reflection", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            date: formData.date,
+            date: formDataReal.date,
             type: "real",
-            value: parseInt(formData.real),
+            value: parseInt(formDataReal.value),
             userId: user?.uid,
             habitId: user?.habitId,
           }),
@@ -63,29 +64,56 @@ export default function DatePage() {
         }
       }
 
-      // Submit ideal value
-      if (formData.ideal) {
-        const idealResponse = await fetch("/api/date-reflection", {
+      toast.success("Date reflection added successfully!");
+      setFormDataReal({ date: "", value: "" });
+      setShowAddForm(false);
+    } catch (error) {
+      toast.error("Failed to add date reflection");
+      console.error("Error submitting date reflection:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+
+
+  const handleSubmitIdeal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    console.log("formdata value is ", {
+      ...formDataIdeal,
+      userId: user?.uid,
+      habitId: user?.habitId,
+    });
+
+    try {
+      // Submit real value
+      if (formDataIdeal.value) {
+        const realResponse = await fetch("/api/date-reflection", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            date: formData.date,
+            date: formDataIdeal.date,
             type: "ideal",
-            value: parseInt(formData.ideal),
+            value: parseInt(formDataIdeal.value),
             userId: user?.uid,
             habitId: user?.habitId,
           }),
         });
 
-        if (!idealResponse.ok) {
-          throw new Error("Failed to submit ideal value");
+        if (!realResponse.ok) {
+          throw new Error("Failed to submit real value");
         }
       }
 
+      
+
       toast.success("Date reflection added successfully!");
-      setFormData({ date: "", real: "", ideal: "" });
+      setFormDataIdeal({ date: "", value: "" });
       setShowAddForm(false);
     } catch (error) {
       toast.error("Failed to add date reflection");
@@ -96,7 +124,8 @@ export default function DatePage() {
   };
 
   const resetForm = () => {
-    setFormData({ date: "", real: "", ideal: "" });
+    setFormDataReal({ date: "", value: ""});
+    setFormDataIdeal({ date: "", value: ""});
     setShowAddForm(false);
   };
 
@@ -187,16 +216,16 @@ export default function DatePage() {
               </div>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmitReal} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="date">Date</Label>
                     <Input
                       id="date"
                       type="date"
-                      value={formData.date}
+                      value={formDataReal.date}
                       onChange={(e) =>
-                        setFormData({ ...formData, date: e.target.value })
+                        setFormDataReal({ ...formDataReal, date: e.target.value })
                       }
                       required
                     />
@@ -207,9 +236,39 @@ export default function DatePage() {
                       id="real"
                       type="number"
                       min="1"
-                      value={formData.real}
+                      value={formDataReal.value}
                       onChange={(e) =>
-                        setFormData({ ...formData, real: e.target.value })
+                        setFormDataReal({ ...formDataReal, value: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetForm}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Adding..." : "Add Entry"}
+                  </Button>
+                </div>
+              </form>
+
+              <form onSubmit={handleSubmitIdeal} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={formDataIdeal.date}
+                      onChange={(e) =>
+                        setFormDataIdeal({ ...formDataIdeal, date: e.target.value })
                       }
                       required
                     />
@@ -220,9 +279,9 @@ export default function DatePage() {
                       id="ideal"
                       type="number"
                       min="1"
-                      value={formData.ideal}
+                      value={formDataIdeal.value}
                       onChange={(e) =>
-                        setFormData({ ...formData, ideal: e.target.value })
+                        setFormDataIdeal({ ...formDataIdeal, value: e.target.value })
                       }
                       required
                     />
