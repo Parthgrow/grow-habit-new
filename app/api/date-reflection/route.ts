@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate value range
-    if (value < 1) {
+    if (value < 0) {
       return NextResponse.json(
         { error: 'Value must be between 1 and 5' },
         { status: 400 }
@@ -39,16 +39,25 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .get();
 
-    if (!existingEntry.empty) {
-      return NextResponse.json(
-        { 
-          error: 'DUPLICATE_ENTRY',
-          message: `You have already submitted a ${type} value for this date`,
-          existingId: existingEntry.docs[0].id
-        },
-        { status: 409 } // Conflict status code
-      );
-    }
+      if (!existingEntry.empty) {
+        // ✅ Update existing entry instead of throwing error
+        const docRef = existingEntry.docs[0].ref;
+  
+        await docRef.update({
+          value,
+          habitId, // also update habitId in case it changes
+          updatedAt: new Date(),
+        });
+  
+        return NextResponse.json(
+          {
+            success: true,
+            message: `${type} value updated successfully`,
+            id: docRef.id,
+          },
+          { status: 200 }
+        );
+      }
 
     // Generate a random ID using nanoid
     const entryId = nanoid();

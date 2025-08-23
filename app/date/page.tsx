@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import {  Plus, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { startOfWeek, endOfWeek } from "date-fns";
+import Link from "next/link";
 
 export default function DatePage() {
   const { user } = useAuth();
@@ -18,19 +20,22 @@ export default function DatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formDataReal, setFormDataReal] = useState({
     date: "",
-    value : "",
+    value: "",
   });
   const [formDataIdeal, setFormDataIdeal] = useState({
-    date : "", 
-    value : ""
-  })
+    date: "",
+    value: "",
+  });
   const itemsPerPage = 10;
-  const [dateReflection, setDateReflection] = useState<any>([]) ; 
+  const [dateReflection, setDateReflection] = useState<any>([]);
+  const [weeklyValues, setWeeklyValues] = useState<any>({
+    idealAvg: "",
+    realAvg: "",
+  });
 
   // Sample data from backend (replace with actual API call)
 
   // Calculate pagination
-
 
   const handleSubmitReal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,9 +80,6 @@ export default function DatePage() {
     }
   };
 
-
-
-
   const handleSubmitIdeal = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -110,8 +112,6 @@ export default function DatePage() {
         }
       }
 
-      
-
       toast.success("Date reflection added successfully!");
       setFormDataIdeal({ date: "", value: "" });
       setShowAddForm(false);
@@ -124,13 +124,12 @@ export default function DatePage() {
   };
 
   const resetForm = () => {
-    setFormDataReal({ date: "", value: ""});
-    setFormDataIdeal({ date: "", value: ""});
+    setFormDataReal({ date: "", value: "" });
+    setFormDataIdeal({ date: "", value: "" });
     setShowAddForm(false);
   };
 
   const transformReflectionData = (data: any[]) => {
-      
     // Safety check
     if (!Array.isArray(data)) {
       console.error("Data is not an array:", data);
@@ -142,31 +141,74 @@ export default function DatePage() {
       if (!acc[date]) {
         acc[date] = { date, real: 0, ideal: 0 };
       }
-      
+
       // Set the value based on type
       if (item.type === "real") {
         acc[date].real = item.value || 0;
       } else if (item.type === "ideal") {
         acc[date].ideal = item.value || 0;
       }
-      
+
       return acc;
     }, {});
 
     // Convert to array and sort by date
-    return Object.values(groupedByDate).sort((a: any, b: any) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
+    return Object.values(groupedByDate).sort(
+      (a: any, b: any) =>
+        new Date(a.date).getTime() - new Date(b.date).getTime()
     );
   };
 
-  
+  const normalizeDate = (dateStr: string) => {
+    // force into YYYY-MM-DD so comparisons work
+    const d = new Date(dateStr);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
+  const calculateAverages = (dateReflection: any[]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const start = startOfWeek(today, { weekStartsOn: 0 }); // Sunday
+    const end = endOfWeek(today, { weekStartsOn: 0 }); // Saturday
+
+    let idealSum = 0,
+      idealCount = 0;
+    let realSum = 0,
+      realCount = 0;
+
+    for (const entry of dateReflection) {
+      // const entryDate = new Date(entry.date);
+      const entryDate = normalizeDate(entry.date);
+
+      // ✅ Within this week? → include in ideal average
+      if (entryDate >= start && entryDate <= end) {
+        if (entry.ideal > 0) {
+          idealSum += entry.ideal;
+          idealCount++;
+        }
+      }
+
+      // ✅ From start of week up to TODAY? → include in real average
+      if (entryDate >= start && entryDate <= today) {
+        if (entry.real > 0) {
+          realSum += entry.real;
+          realCount++;
+        }
+      }
+    }
+
+    const idealAvg = idealCount > 0 ? idealSum / idealCount : 0;
+    const realAvg = realCount > 0 ? realSum / realCount : 0;
+
+    console.log("the value of idealAvg and realAvg is ", idealAvg, realAvg);
+
+    setWeeklyValues({ idealAvg: idealAvg, realAvg: realAvg });
+  };
 
   useEffect(() => {
-
-   
-
-
-    const handleFetchData = async (userId : string) => {
+    const handleFetchData = async (userId: string) => {
       console.log("the value of user is ", user);
       const response = await fetch(`/api/date-reflection?userId=${userId}`, {
         method: "GET",
@@ -177,14 +219,37 @@ export default function DatePage() {
 
       const repData = await response.json();
       const transformedData = transformReflectionData(repData.entries);
-      setDateReflection(transformedData); 
 
+      // ✅ Get current week's start & end
+      const { start, end } = handleDate();
+
+      // ✅ Filter only entries within this week
+      const filtered = transformedData.filter((row: any) => {
+        const d = new Date(row.date);
+        d.setHours(0, 0, 0, 0);
+        return d >= start && d <= end;
+      });
+
+      setDateReflection(filtered);
     };
 
     if (user?.uid) {
       handleFetchData(user.uid);
     }
   }, [user]);
+
+  useEffect(() => {
+    calculateAverages(dateReflection);
+  }, [dateReflection]);
+
+  const handleDate = () => {
+    const today = new Date();
+
+    const start = startOfWeek(today, { weekStartsOn: 0 }); // 0 = Sunday
+    const end = endOfWeek(today, { weekStartsOn: 0 }); // Saturday
+
+    return { start, end };
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -225,7 +290,10 @@ export default function DatePage() {
                       type="date"
                       value={formDataReal.date}
                       onChange={(e) =>
-                        setFormDataReal({ ...formDataReal, date: e.target.value })
+                        setFormDataReal({
+                          ...formDataReal,
+                          date: e.target.value,
+                        })
                       }
                       required
                     />
@@ -235,10 +303,13 @@ export default function DatePage() {
                     <Input
                       id="real"
                       type="number"
-                      min="1"
+                      min="0"
                       value={formDataReal.value}
                       onChange={(e) =>
-                        setFormDataReal({ ...formDataReal, value: e.target.value })
+                        setFormDataReal({
+                          ...formDataReal,
+                          value: e.target.value,
+                        })
                       }
                       required
                     />
@@ -268,7 +339,10 @@ export default function DatePage() {
                       type="date"
                       value={formDataIdeal.date}
                       onChange={(e) =>
-                        setFormDataIdeal({ ...formDataIdeal, date: e.target.value })
+                        setFormDataIdeal({
+                          ...formDataIdeal,
+                          date: e.target.value,
+                        })
                       }
                       required
                     />
@@ -278,10 +352,13 @@ export default function DatePage() {
                     <Input
                       id="ideal"
                       type="number"
-                      min="1"
+                      min="0"
                       value={formDataIdeal.value}
                       onChange={(e) =>
-                        setFormDataIdeal({ ...formDataIdeal, value: e.target.value })
+                        setFormDataIdeal({
+                          ...formDataIdeal,
+                          value: e.target.value,
+                        })
                       }
                       required
                     />
@@ -305,11 +382,35 @@ export default function DatePage() {
           </Card>
         )}
 
+        <div className="space-y-4 mb-8">
+          <div>
+            <p className="text-sm text-gray-600">Weekly Progress</p>
+            <div className="w-full bg-gray-200 rounded-full h-3 mt-1">
+              <div
+                className="bg-blue-500 h-3  rounded-full transition-all"
+                style={{
+                  width: `${
+                    weeklyValues?.idealAvg
+                      ? (weeklyValues.realAvg / weeklyValues.idealAvg) * 100
+                      : 0
+                  }%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Table */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Daily Progress</CardTitle>
+
+                <Button asChild>
+                <Link href="/">Back to home</Link>
+                </Button>
+
+
               <Button
                 onClick={() => setShowAddForm(!showAddForm)}
                 size="sm"
@@ -337,7 +438,7 @@ export default function DatePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dateReflection.map((row : any, index : number) => (
+                  {dateReflection.map((row: any, index: number) => (
                     <tr
                       key={index}
                       className={cn(

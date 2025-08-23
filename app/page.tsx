@@ -19,7 +19,6 @@ export default function Page() {
     habitStatements: "",
   });
 
-  console.log("the value of user is ", user); 
 
   if (loading) {
     return (
@@ -241,9 +240,15 @@ export default function Page() {
                 View your progress over time and see how your habits are
                 developing.
               </p>
-              <Button asChild className="w-full">
-                <Link href="/progress">View Progress</Link>
-              </Button>
+
+              <div className="flex flex-col gap-2">
+                <Button asChild className="w-full">
+                  <Link href="/progress">View Progress</Link>
+                </Button>
+                <Button asChild className="w-full">
+                  <Link href="/date">Weekly Progress</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
