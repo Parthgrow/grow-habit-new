@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/firebase';
-import { startOfWeek, endOfWeek, setWeek, endOfISOWeek, startOfYear, startOfISOWeek, addWeeks } from 'date-fns';
+import { startOfWeek, endOfWeek, setWeek, endOfISOWeek, startOfYear, startOfISOWeek, addWeeks, subDays } from 'date-fns';
 
 
 
@@ -11,8 +11,11 @@ function getDateRangeOfWeek(week: number, year: number) {
   const firstDayOfYear = startOfYear(new Date(year, 0, 1));
 
   // 2️⃣ Calculate start of the ISO week
-  const weekStart = startOfISOWeek(addWeeks(firstDayOfYear, week - 1));
-  const weekEnd = endOfISOWeek(weekStart);
+  let weekStart = startOfISOWeek(addWeeks(firstDayOfYear, week - 1));
+  let weekEnd = endOfISOWeek(weekStart);
+
+  weekStart = subDays(weekStart, 1);
+  weekEnd = subDays(weekEnd, 1);
 
   // 3️⃣ Format as YYYY-MM-DD
   const formatDate = (date: Date) =>
