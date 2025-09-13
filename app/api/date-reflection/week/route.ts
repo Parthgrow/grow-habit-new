@@ -2,20 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/firebase';
 import { startOfWeek, endOfWeek, setWeek } from 'date-fns';
 
+
 function getDateRangeOfWeek(week: number, year: number) {
+  // 1️⃣ Base date in UTC
+  const baseDate = setWeek(new Date(Date.UTC(year, 0, 1)), week);
 
+  // 2️⃣ Week start/end in UTC
+  const weekStart = startOfWeek(baseDate, { weekStartsOn: 1 }); // Sunday
+  const weekEnd = endOfWeek(baseDate, { weekStartsOn: 0 });     // Saturday
 
-    const baseDate = setWeek(new Date(year, 0, 1), week); // Jan 1 of the year + week number
+  // 3️⃣ Convert to YYYY-MM-DD string without timezone shift
+  const startStr = `${weekStart.getUTCFullYear()}-${String(
+    weekStart.getUTCMonth() + 1
+  ).padStart(2, '0')}-${String(weekStart.getUTCDate()).padStart(2, '0')}`;
 
-  
-    const weekStart = startOfWeek(baseDate, { weekStartsOn: 1 }); // Sunday
-    const weekEnd = endOfWeek(baseDate, { weekStartsOn: 0 });     // Saturday
-  
-    return {
-      startStr: weekStart.toISOString().split("T")[0],
-      endStr: weekEnd.toISOString().split("T")[0],
-    };
-  }
+  const endStr = `${weekEnd.getUTCFullYear()}-${String(
+    weekEnd.getUTCMonth() + 1
+  ).padStart(2, '0')}-${String(weekEnd.getUTCDate()).padStart(2, '0')}`;
+
+  return { startStr, endStr };
+}
 
 
 
