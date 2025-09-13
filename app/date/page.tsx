@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {  Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { startOfWeek, endOfWeek } from "date-fns";
+import { getWeek, setWeek } from "date-fns";
+
 import Link from "next/link";
 
 export default function DatePage() {
@@ -168,10 +170,12 @@ export default function DatePage() {
 
   const calculateAverages = (dateReflection: any[]) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const year = today.getFullYear();
+    const week = getWeek(today, { weekStartsOn: 1 });
+    const baseDate = setWeek(new Date(year, 0, 1), Number(week));
 
-    const start = startOfWeek(today, { weekStartsOn: 0 }); // Sunday
-    const end = endOfWeek(today, { weekStartsOn: 0 }); // Saturday
+    const weekStart = startOfWeek(baseDate, { weekStartsOn: 0 }); // Sunday
+    const weekEnd = endOfWeek(baseDate, { weekStartsOn: 0 });
 
     let idealSum = 0,
       idealCount = 0;
@@ -183,21 +187,24 @@ export default function DatePage() {
       const entryDate = normalizeDate(entry.date);
 
       // ✅ Within this week? → include in ideal average
-      if (entryDate >= start && entryDate <= end) {
+      if (entryDate >= weekStart && entryDate <= weekEnd) {
         if (entry.ideal > 0) {
           idealSum += entry.ideal;
-          idealCount++;
         }
+        idealCount++;
+
       }
 
       // ✅ From start of week up to TODAY? → include in real average
-      if (entryDate >= start && entryDate <= today) {
+      if (entryDate >= weekStart && entryDate <= today) {
         if (entry.real > 0) {
           realSum += entry.real;
-          realCount++;
         }
+        realCount++;
       }
     }
+
+    console.log("the value of realSum and realCount is ", realSum, realCount) ; 
 
     const idealAvg = idealCount > 0 ? idealSum / idealCount : 0;
     const realAvg = realCount > 0 ? realSum / realCount : 0;
@@ -209,30 +216,30 @@ export default function DatePage() {
 
   useEffect(() => {
     const handleFetchData = async (userId: string) => {
-      console.log("the value of user is ", user);
-      const response = await fetch(`/api/date-reflection?userId=${userId}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      if (!userId) return;
+      // ✅ Get current week number + year
+      const today = new Date();
+      const year = today.getFullYear();
 
+      const week = getWeek(today, { weekStartsOn: 1 });
+      console.log("Fetching reflections for week:", week, "year:", year);
+      const response = await fetch(
+        `/api/date-reflection/week?userId=${userId}&week=${week}&year=${year}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        console.error("Failed to fetch weekly reflections");
+        return;
+      }
       const repData = await response.json();
       const transformedData = transformReflectionData(repData.entries);
-
-      // ✅ Get current week's start & end
-      const { start, end } = handleDate();
-
-      // ✅ Filter only entries within this week
-      const filtered = transformedData.filter((row: any) => {
-        const d = new Date(row.date);
-        d.setHours(0, 0, 0, 0);
-        return d >= start && d <= end;
-      });
-
-      setDateReflection(filtered);
+      setDateReflection(transformedData);
     };
-
     if (user?.uid) {
       handleFetchData(user.uid);
     }
@@ -257,7 +264,7 @@ export default function DatePage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Date Tracking
+            Weekly Progress
           </h1>
           <p className="text-gray-600">
             Track your daily progress against your ideal goals
@@ -384,7 +391,9 @@ export default function DatePage() {
 
         <div className="space-y-4 mb-8">
           <div>
-            <p className="text-sm text-gray-600">Weekly Progress</p>
+            <p className="text-sm text-gray-600">
+              Weekly Progress : {weeklyValues.realAvg} / {weeklyValues.idealAvg}
+            </p>
             <div className="w-full bg-gray-200 rounded-full h-3 mt-1">
               <div
                 className="bg-blue-500 h-3  rounded-full transition-all"
@@ -406,10 +415,9 @@ export default function DatePage() {
             <div className="flex items-center justify-between">
               <CardTitle>Daily Progress</CardTitle>
 
-                <Button asChild>
+              <Button asChild>
                 <Link href="/">Back to home</Link>
-                </Button>
-
+              </Button>
 
               <Button
                 onClick={() => setShowAddForm(!showAddForm)}
