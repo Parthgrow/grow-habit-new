@@ -1,26 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/firebase';
-import { startOfWeek, endOfWeek, setWeek } from 'date-fns';
+import { startOfWeek, endOfWeek, setWeek, endOfISOWeek, startOfYear, startOfISOWeek, addWeeks } from 'date-fns';
+
+
+
 
 
 function getDateRangeOfWeek(week: number, year: number) {
-  // 1️⃣ Base date in UTC
-  const baseDate = setWeek(new Date(Date.UTC(year, 0, 1)), week);
+  // 1️⃣ Get the first day of the year
+  const firstDayOfYear = startOfYear(new Date(year, 0, 1));
 
-  // 2️⃣ Week start/end in UTC
-  const weekStart = startOfWeek(baseDate, { weekStartsOn: 1 }); // Sunday
-  const weekEnd = endOfWeek(baseDate, { weekStartsOn: 0 });     // Saturday
+  // 2️⃣ Calculate start of the ISO week
+  const weekStart = startOfISOWeek(addWeeks(firstDayOfYear, week - 1));
+  const weekEnd = endOfISOWeek(weekStart);
 
-  // 3️⃣ Convert to YYYY-MM-DD string without timezone shift
-  const startStr = `${weekStart.getUTCFullYear()}-${String(
-    weekStart.getUTCMonth() + 1
-  ).padStart(2, '0')}-${String(weekStart.getUTCDate()).padStart(2, '0')}`;
+  // 3️⃣ Format as YYYY-MM-DD
+  const formatDate = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+      date.getDate()
+    ).padStart(2, '0')}`;
 
-  const endStr = `${weekEnd.getUTCFullYear()}-${String(
-    weekEnd.getUTCMonth() + 1
-  ).padStart(2, '0')}-${String(weekEnd.getUTCDate()).padStart(2, '0')}`;
-
-  return { startStr, endStr };
+  return { startStr: formatDate(weekStart), endStr: formatDate(weekEnd) };
 }
 
 
