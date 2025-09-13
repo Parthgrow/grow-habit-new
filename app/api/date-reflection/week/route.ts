@@ -1,25 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/firebase';
+import { startOfWeek, endOfWeek, setWeek } from 'date-fns';
 
-function getDateRangeOfISOWeek(week: number, year: number) {
-  const simple = new Date(year, 0, 1 + (week - 1) * 7);
-  const dow = simple.getDay();
-  const ISOweekStart = simple;
-  if (dow <= 4) {
-    ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
-  } else {
-    ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+function getDateRangeOfWeek(week: number, year: number) {
+
+
+    const baseDate = setWeek(new Date(year, 0, 1), week); // Jan 1 of the year + week number
+
+  
+    const weekStart = startOfWeek(baseDate, { weekStartsOn: 1 }); // Sunday
+    const weekEnd = endOfWeek(baseDate, { weekStartsOn: 0 });     // Saturday
+  
+    return {
+      startStr: weekStart.toISOString().split("T")[0],
+      endStr: weekEnd.toISOString().split("T")[0],
+    };
   }
-  const ISOweekEnd = new Date(ISOweekStart);
-  ISOweekEnd.setDate(ISOweekStart.getDate() + 6);
-
-  // Convert to YYYY-MM-DD string format
-  const startStr = ISOweekStart.toISOString().split('T')[0];
-  const endStr = ISOweekEnd.toISOString().split('T')[0];
 
 
-  return {startStr, endStr};
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +36,8 @@ export async function GET(request: NextRequest) {
     let query = db.collection('date-reflection').where('userId', '==', userId);
 
     if (week && year) {
-      const { startStr, endStr } = getDateRangeOfISOWeek(Number(week), Number(year));
+
+      const { startStr, endStr } = getDateRangeOfWeek(Number(week), Number(year));
 
       console.log("the value of start is ", startStr) ; 
       console.log("the value of end is ", endStr) ; 
