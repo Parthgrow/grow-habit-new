@@ -54,7 +54,7 @@ function calculateWeeklyAverages(entries: any[]) {
   Object.keys(weeklyData).forEach(weekNumber => {
     const weekData = weeklyData[weekNumber];
     const realAvg = weekData.real.length > 0 
-      ? weekData.real.reduce((sum, val) => sum + val, 0) / weekData.real.length 
+      ? weekData.real.reduce((sum, val) => sum + val, 0) / 7
       : 0;
     const idealAvg = weekData.ideal.length > 0 
       ? weekData.ideal.reduce((sum, val) => sum + val, 0) / weekData.ideal.length 
