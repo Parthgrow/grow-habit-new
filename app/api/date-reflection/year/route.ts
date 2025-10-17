@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWeek, startOfWeek, endOfWeek } from 'date-fns';
+import { getCachedYearlyData, setCachedYearlyData } from '@/lib/cache';
 
 // Helper function to get all weeks in a year
 function getAllWeeksInYear(year: number) {
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const habitId = searchParams.get('habitId');
     const year = searchParams.get('year');
+    const forceRefresh = searchParams.get('forceRefresh') === 'true';
 
     if (!userId || !habitId) {
       return NextResponse.json(
@@ -81,6 +83,23 @@ export async function GET(request: NextRequest) {
     }
 
     const targetYear = year ? parseInt(year) : new Date().getFullYear();
+    
+    // Check cache first (unless force refresh is requested)
+    if (!forceRefresh) {
+      const cachedData = await getCachedYearlyData(userId, habitId, targetYear);
+      if (cachedData) {
+        console.log('Returning cached yearly data');
+        return NextResponse.json({
+          ...cachedData,
+          cacheStatus: 'cached',
+          cacheTimestamp: new Date().toISOString()
+        });
+      }
+    } else {
+      console.log('Force refresh requested - bypassing cache');
+    }
+
+    console.log('Cache miss - fetching from Firestore');
     
     // Get all weeks in the year
     const weeksInYear = getAllWeeksInYear(targetYear);
@@ -112,11 +131,18 @@ export async function GET(request: NextRequest) {
     // Calculate weekly averages from all entries
     const weeklyAverages = calculateWeeklyAverages(allEntries);
 
-    return NextResponse.json({ 
+    const responseData = { 
       entries: allEntries,
       weeklyAverages,
-      year: targetYear
-    });
+      year: targetYear,
+      cacheStatus: 'fetched',
+      cacheTimestamp: new Date().toISOString()
+    };
+
+    // Cache the response for 24 hours
+    await setCachedYearlyData(userId, habitId, targetYear, responseData);
+
+    return NextResponse.json(responseData);
 
   } catch (error) {
     console.error('Error fetching yearly date reflections:', error);

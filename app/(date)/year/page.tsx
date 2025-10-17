@@ -10,6 +10,9 @@ export default function YearPage() {
     [weekNumber: string]: { realAvg: number; idealAvg: number };
   }>({});
   const [loading, setLoading] = useState(true);
+  const [cacheStatus, setCacheStatus] = useState<string>("");
+  const [cacheTimestamp, setCacheTimestamp] = useState<string>("");
+  const [refreshing, setRefreshing] = useState(false);
   const getWeeksInYear = (year: number) => {
     const weeks = [];
 
@@ -65,44 +68,131 @@ export default function YearPage() {
   const weeksInYear = getWeeksInYear(currentYear);
 
   // Fetch yearly data
+  const fetchYearlyData = async (forceRefresh = false) => {
+    if (!user?.uid || !user?.habitId) {
+      setLoading(false);
+      return;
+    }
+
+    console.log("I was here");
+
+    try {
+      const url = `/api/date-reflection/year?userId=${user.uid}&habitId=${
+        user.habitId
+      }&year=${currentYear}${forceRefresh ? "&forceRefresh=true" : ""}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        console.log("Failed to fetch yearly data");
+        throw new Error("Failed to fetch yearly data");
+      }
+
+      const data = await response.json();
+      console.log("the value of data is ", data);
+      setWeeklyAverages(data.weeklyAverages || {});
+      setCacheStatus(data.cacheStatus || "");
+      setCacheTimestamp(data.cacheTimestamp || "");
+    } catch (error) {
+      console.error("Error fetching yearly data:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchYearlyData = async () => {
-      if (!user?.uid || !user?.habitId) {
-        setLoading(false);
-        return;
-      }
-
-      console.log("I was here");
-
-      try {
-        const response = await fetch(
-          `/api/date-reflection/year?userId=${user.uid}&habitId=${user.habitId}&year=${currentYear}`
-        );
-
-        if (!response.ok) {
-          console.log("Failed to fetch yearly data");
-          throw new Error("Failed to fetch yearly data");
-        }
-
-        const data = await response.json();
-        console.log("the value of data is ", data);
-        setWeeklyAverages(data.weeklyAverages || {});
-      } catch (error) {
-        console.error("Error fetching yearly data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchYearlyData();
   }, [user, currentYear]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchYearlyData(true);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          All Weeks in {currentYear} (ISO Standard)
-        </h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            All Weeks in {currentYear} (ISO Standard)
+          </h1>
+
+          <div className="flex items-center gap-4">
+            {/* Cache Status Badge */}
+            {cacheStatus && (
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    cacheStatus === "cached"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-blue-100 text-blue-800"
+                  }`}
+                >
+                  {cacheStatus === "cached" ? "📦 Cached" : "🔄 Fetched"}
+                </span>
+                {cacheTimestamp && (
+                  <span className="text-xs text-gray-500">
+                    {new Date(cacheTimestamp).toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Refresh Button */}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
+                refreshing
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              }`}
+            >
+              {refreshing ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  Refresh Data
+                </>
+              )}
+            </button>
+          </div>
+        </div>
 
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
           <div className="overflow-x-auto">
@@ -196,7 +286,6 @@ export default function YearPage() {
                         )}
                       </div>
                     </td>
-                   
                   </tr>
                 ))}
               </tbody>
