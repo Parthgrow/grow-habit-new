@@ -22,7 +22,7 @@ const ProPage = () => {
             create_new_customer: true,
         };
 
-        const return_url = "http://localhost:3000/";
+        const return_url = "https://grow-habit-new.vercel.app/checkout/success";
 
         const response = await fetch("/api/checkout", {
             method: "POST",
@@ -51,7 +51,7 @@ const ProPage = () => {
                 onPlanSelect={(planId) => startCheckout(planId)}
                 plans={[
                     {
-                        id: "monthly",
+                        id: "pdt_naJrnmOgrb81Dm98GDEir",
                         title: "Grow Habit Pro (Monthly)",
                         description:
                             "Better accountability in life and improved way of living life.",
@@ -79,7 +79,7 @@ const ProPage = () => {
                         ],
                     },
                     {
-                        id: "yearly",
+                        id: "pdt_MFz6TQFz4Dem4hndxKloc",
                         title: "Grow Habit Pro (Yearly)",
                         description:
                             "Better accountability in life and improved way of living life.",
