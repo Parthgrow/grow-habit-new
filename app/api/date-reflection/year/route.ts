@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWeek, startOfWeek, endOfWeek } from 'date-fns';
 import { getCachedYearlyData, setCachedYearlyData } from '@/lib/cache';
+import { calculateWeeklyAverages } from '@/modules/api/date';
 
 // Helper function to get all weeks in a year
 function getAllWeeksInYear(year: number) {
@@ -28,43 +29,6 @@ function getAllWeeksInYear(year: number) {
   }
   
   return weeks;
-}
-
-// Helper function to calculate weekly averages from entries
-function calculateWeeklyAverages(entries: any[]) {
-  const weeklyData: { [weekNumber: string]: { real: number[], ideal: number[] } } = {};
-
-  entries.forEach(entry => {
-    const entryDate = new Date(entry.date);
-    const weekNumber = getWeek(entryDate, { weekStartsOn: 1 });
-    
-    if (!weeklyData[weekNumber]) {
-      weeklyData[weekNumber] = { real: [], ideal: [] };
-    }
-
-    if (entry.type === 'real') {
-      weeklyData[weekNumber].real.push(entry.value);
-    } else if (entry.type === 'ideal') {
-      weeklyData[weekNumber].ideal.push(entry.value);
-    }
-  });
-
-  // Calculate weekly averages
-  const weeklyAverages: { [weekNumber: string]: { realAvg: number, idealAvg: number } } = {};
-
-  Object.keys(weeklyData).forEach(weekNumber => {
-    const weekData = weeklyData[weekNumber];
-    const realAvg = weekData.real.length > 0 
-      ? weekData.real.reduce((sum, val) => sum + val, 0) / 7
-      : 0;
-    const idealAvg = weekData.ideal.length > 0 
-      ? weekData.ideal.reduce((sum, val) => sum + val, 0) / weekData.ideal.length 
-      : 0;
-
-    weeklyAverages[weekNumber] = { realAvg, idealAvg };
-  });
-
-  return weeklyAverages;
 }
 
 export async function GET(request: NextRequest) {
