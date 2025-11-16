@@ -248,6 +248,9 @@ export default function Page() {
                 <Button asChild className="w-full">
                   <Link href="/date">Weekly Progress</Link>
                 </Button>
+                <Button asChild className="w-full">
+                  <Link href="/year">Yearly Progress</Link>
+                </Button>
               </div>
             </CardContent>
           </Card>
