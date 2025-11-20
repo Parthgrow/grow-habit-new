@@ -31,7 +31,7 @@ interface Reflection {
   userId: string;
   habitProgress: string;
   reflection: string;
-  day: number;
+  date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -114,9 +114,9 @@ export default function AdminDashboard() {
   const calculateReflectionRate = () => {
     if (reflections.length === 0) return 0;
 
-    // Get unique days with reflections
-    const uniqueDays = new Set(reflections.map((r) => r.day));
-    return uniqueDays.size;
+    // Get unique dates with reflections
+    const uniqueDates = new Set(reflections.map((r) => r.date));
+    return uniqueDates.size;
   };
 
   const getSelectedUser = () => {
