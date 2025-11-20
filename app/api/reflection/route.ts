@@ -5,28 +5,28 @@ import { nanoid } from 'nanoid';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, habitProgress, reflection, day, userName, habitId } = body;
+    const { userId, habitProgress, reflection, date, userName, habitId } = body;
 
     // Validate required fields
-    if (!userId || !habitProgress || !reflection || day === null || day === undefined) {
+    if (!userId || !habitProgress || !reflection || !date) {
       return NextResponse.json(
-        { error: 'Missing required fields: userId, habitProgress, reflection, day' },
+        { error: 'Missing required fields: userId, habitProgress, reflection, date' },
         { status: 400 }
       );
     }
 
-    // Check if there's already a reflection for this user on this day
+    // Check if there's already a reflection for this user on this specific date
     const existingReflection = await db.collection('reflections')
       .where('userId', '==', userId)
-      .where('day', '==', day)
+      .where('date', '==', date)
       .limit(1)
       .get();
 
     if (!existingReflection.empty) {
       return NextResponse.json(
-        { 
+        {
           error: 'DUPLICATE_ENTRY',
-          message: 'You have already submitted a reflection for this day',
+          message: 'You have already submitted a reflection for this date',
           existingId: existingReflection.docs[0].id
         },
         { status: 409 } // Conflict status code
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       habitId,
       habitProgress,
       reflection,
-      day,
+      date,
       createdAt: new Date(),
       updatedAt: new Date(),
       userName
