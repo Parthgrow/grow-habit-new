@@ -21,7 +21,7 @@ interface Reflection {
   userId: string;
   habitProgress: string;
   reflection: string;
-  day: number;
+  date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,7 +36,13 @@ export default function ProgressPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/reflection?userId=${user.uid}`);
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
+      const currentYear = currentDate.getFullYear();
+
+      const response = await fetch(
+        `/api/reflection?userId=${user.uid}&month=${currentMonth}&year=${currentYear}`
+      );
       if (response.ok) {
         const data = await response.json();
         console.log("the value of data", data);
@@ -69,9 +75,9 @@ export default function ProgressPage() {
   const calculateReflectionRate = () => {
     if (reflections.length === 0) return 0;
 
-    // Get unique days with reflections
-    const uniqueDays = new Set(reflections.map((r) => r.day));
-    return uniqueDays.size;
+    // Get unique dates with reflections
+    const uniqueDates = new Set(reflections.map((r) => r.date));
+    return uniqueDates.size;
   };
 
 
@@ -126,10 +132,10 @@ export default function ProgressPage() {
             </Card>
 
             {/* Progress Grid */}
-            <ProgressGrid 
-              reflections={reflections} 
+            <ProgressGrid
+              reflections={reflections}
               loading={loading}
-              title="Daily Progress (Days 1-25)"
+              title="Daily Progress (Current Month)"
             />
           </div>
         </div>

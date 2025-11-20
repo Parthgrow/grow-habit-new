@@ -74,17 +74,45 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const month = searchParams.get('month');
+    const year = searchParams.get('year');
 
-    if (!userId) {
+    if (!userId || !month || !year) {
       return NextResponse.json(
-        { error: 'userId parameter is required' },
+        { error: 'Missing required parameters: userId, month, and year are required' },
         { status: 400 }
       );
     }
 
-    // Query Firestore directly with userId filter
+    // Validate month and year
+    const monthNum = parseInt(month);
+    const yearNum = parseInt(year);
+
+    if (monthNum < 1 || monthNum > 12 || isNaN(monthNum)) {
+      return NextResponse.json(
+        { error: 'Invalid month. Must be between 1 and 12' },
+        { status: 400 }
+      );
+    }
+
+    if (isNaN(yearNum) || yearNum < 2000) {
+      return NextResponse.json(
+        { error: 'Invalid year' },
+        { status: 400 }
+      );
+    }
+
+    // Create date range for the specified month
+    const startDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-01`;
+    const nextMonth = monthNum === 12 ? 1 : monthNum + 1;
+    const nextYear = monthNum === 12 ? yearNum + 1 : yearNum;
+    const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+
+    // Query Firestore with userId and date range filter
     const reflectionsSnapshot = await db.collection('reflections')
       .where('userId', '==', userId)
+      .where('date', '>=', startDate)
+      .where('date', '<', endDate)
       .get();
 
     const reflections = reflectionsSnapshot.docs.map(doc => ({
