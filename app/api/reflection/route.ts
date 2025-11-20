@@ -5,28 +5,28 @@ import { nanoid } from 'nanoid';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, habitProgress, reflection, day, userName, habitId } = body;
+    const { userId, habitProgress, reflection, date, userName, habitId } = body;
 
     // Validate required fields
-    if (!userId || !habitProgress || !reflection || day === null || day === undefined) {
+    if (!userId || !habitProgress || !reflection || !date) {
       return NextResponse.json(
-        { error: 'Missing required fields: userId, habitProgress, reflection, day' },
+        { error: 'Missing required fields: userId, habitProgress, reflection, date' },
         { status: 400 }
       );
     }
 
-    // Check if there's already a reflection for this user on this day
+    // Check if there's already a reflection for this user on this specific date
     const existingReflection = await db.collection('reflections')
       .where('userId', '==', userId)
-      .where('day', '==', day)
+      .where('date', '==', date)
       .limit(1)
       .get();
 
     if (!existingReflection.empty) {
       return NextResponse.json(
-        { 
+        {
           error: 'DUPLICATE_ENTRY',
-          message: 'You have already submitted a reflection for this day',
+          message: 'You have already submitted a reflection for this date',
           existingId: existingReflection.docs[0].id
         },
         { status: 409 } // Conflict status code
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       habitId,
       habitProgress,
       reflection,
-      day,
+      date,
       createdAt: new Date(),
       updatedAt: new Date(),
       userName
@@ -74,17 +74,45 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const month = searchParams.get('month');
+    const year = searchParams.get('year');
 
-    if (!userId) {
+    if (!userId || !month || !year) {
       return NextResponse.json(
-        { error: 'userId parameter is required' },
+        { error: 'Missing required parameters: userId, month, and year are required' },
         { status: 400 }
       );
     }
 
-    // Query Firestore directly with userId filter
+    // Validate month and year
+    const monthNum = parseInt(month);
+    const yearNum = parseInt(year);
+
+    if (monthNum < 1 || monthNum > 12 || isNaN(monthNum)) {
+      return NextResponse.json(
+        { error: 'Invalid month. Must be between 1 and 12' },
+        { status: 400 }
+      );
+    }
+
+    if (isNaN(yearNum) || yearNum < 2000) {
+      return NextResponse.json(
+        { error: 'Invalid year' },
+        { status: 400 }
+      );
+    }
+
+    // Create date range for the specified month
+    const startDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-01`;
+    const nextMonth = monthNum === 12 ? 1 : monthNum + 1;
+    const nextYear = monthNum === 12 ? yearNum + 1 : yearNum;
+    const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+
+    // Query Firestore with userId and date range filter
     const reflectionsSnapshot = await db.collection('reflections')
       .where('userId', '==', userId)
+      .where('date', '>=', startDate)
+      .where('date', '<', endDate)
       .get();
 
     const reflections = reflectionsSnapshot.docs.map(doc => ({

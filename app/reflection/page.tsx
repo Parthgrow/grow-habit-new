@@ -29,7 +29,7 @@ export default function ReflectionPage() {
     userId: "",
     habitProgress: "",
     reflection: "",
-    day: null as number | null,
+    date: "",
   });
   const [date, setDate] = useState<Date>();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,10 +44,10 @@ export default function ReflectionPage() {
   const handleDateSelect = (selectedDate: Date | undefined) => {
     setDate(selectedDate);
     if (selectedDate) {
-      const day = selectedDate.getDate(); // Extract day as number (1-31)
-      setFormData({ ...formData, day });
+      const dateString = format(selectedDate, "yyyy-MM-dd");
+      setFormData({ ...formData, date: dateString });
     } else {
-      setFormData({ ...formData, day: null });
+      setFormData({ ...formData, date: "" });
     }
   };
 
@@ -73,7 +73,7 @@ export default function ReflectionPage() {
           userId: user?.uid || "",
           habitProgress: "",
           reflection: "",
-          day: null,
+          date: "",
         });
         setDate(undefined);
       } else if (response.status === 409 && data.error === "DUPLICATE_ENTRY") {
@@ -141,11 +141,6 @@ export default function ReflectionPage() {
                   />
                 </PopoverContent>
               </Popover>
-              {formData.day && (
-                <p className="text-sm text-gray-500">
-                  Selected day: {formData.day}
-                </p>
-              )}
             </div>
 
             {/* Habit Progress Select */}

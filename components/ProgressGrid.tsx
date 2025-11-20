@@ -8,7 +8,7 @@ interface Reflection {
   userId: string;
   habitProgress: string;
   reflection: string;
-  day: number;
+  date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,8 +26,12 @@ export default function ProgressGrid({
 }: ProgressGridProps) {
   const createDayGrid = () => {
     const days = [];
-    for (let day = 1; day <= 25; day++) {
-      const hasReflection = reflections.some((r) => r.day === day);
+    for (let day = 1; day <= 31; day++) {
+      // Extract day from date string (YYYY-MM-DD format)
+      const hasReflection = reflections.some((r) => {
+        const dateDay = parseInt(r.date.split('-')[2]);
+        return dateDay === day;
+      });
       days.push({ day, hasReflection });
     }
     return days;
