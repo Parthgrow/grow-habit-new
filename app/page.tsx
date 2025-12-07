@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { fetchReflections, type Reflection } from "@/lib/repository";
+import { fetchReflections } from "@/lib/utils";
+import { type Reflection } from "@/lib/repository";
 import ProgressGrid from "@/components/ProgressGrid";
 
 export default function Page() {

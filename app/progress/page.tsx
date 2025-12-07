@@ -15,7 +15,8 @@ import { Calendar, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ProgressGrid from "@/components/ProgressGrid";
-import { fetchReflections, type Reflection } from "@/lib/repository";
+import { fetchReflections } from "@/lib/utils";
+import { type Reflection } from "@/lib/repository";
 
 export default function ProgressPage() {
   const { user } = useAuth();
