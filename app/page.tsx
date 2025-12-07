@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { fetchReflections, type Reflection } from "@/lib/repository";
+import ProgressGrid from "@/components/ProgressGrid";
 
 export default function Page() {
   const { user, loading, updateUserData } = useAuth();
@@ -18,7 +20,34 @@ export default function Page() {
     habitName: "",
     habitStatements: "",
   });
+  const [reflections, setReflections] = useState<Reflection[]>([]);
+  const [reflectionsLoading, setReflectionsLoading] = useState(false);
 
+  useEffect(() => {
+    const loadReflections = async () => {
+      if (!user?.uid || !user?.habitId) return;
+
+      setReflectionsLoading(true);
+      try {
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1;
+        const currentYear = currentDate.getFullYear();
+
+        const data = await fetchReflections({
+          userId: user.uid,
+          month: currentMonth,
+          year: currentYear,
+        });
+        setReflections(data);
+      } catch (error) {
+        console.error("Error fetching reflections:", error);
+      } finally {
+        setReflectionsLoading(false);
+      }
+    };
+
+    loadReflections();
+  }, [user?.uid, user?.habitId]);
 
   if (loading) {
     return (
@@ -254,6 +283,15 @@ export default function Page() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Progress Grid */}
+        <div className="mt-8">
+          <ProgressGrid
+            reflections={reflections}
+            loading={reflectionsLoading}
+            title="Daily Progress (Current Month)"
+          />
         </div>
 
         {/* Habit Information */}

@@ -2,16 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
-
-interface Reflection {
-  id: string;
-  userId: string;
-  habitProgress: string;
-  reflection: string;
-  date: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { type Reflection } from "@/lib/repository";
 
 interface ProgressGridProps {
   reflections: Reflection[];
@@ -29,7 +20,7 @@ export default function ProgressGrid({
     for (let day = 1; day <= 31; day++) {
       // Extract day from date string (YYYY-MM-DD format)
       const hasReflection = reflections.some((r) => {
-        const dateDay = parseInt(r.date.split('-')[2]);
+        const dateDay = parseInt(r.date.split("-")[2]);
         return dateDay === day;
       });
       days.push({ day, hasReflection });
