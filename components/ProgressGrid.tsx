@@ -15,15 +15,50 @@ export default function ProgressGrid({
   loading,
   title = "Daily Progress (Days 1-25)",
 }: ProgressGridProps) {
+  const getDateFromDay = (
+    day: number,
+    month: number,
+    year: number
+  ): string | null => {
+    try {
+      // month is 1-12, but Date constructor expects 0-11
+      const date = new Date(year, month - 1, day);
+
+      // Check if date is valid (e.g., Feb 30 would be invalid)
+      if (
+        date.getDate() !== day ||
+        date.getMonth() !== month - 1 ||
+        date.getFullYear() !== year
+      ) {
+        return null;
+      }
+
+      // Format as YYYY-MM-DD
+      const yearStr = year.toString();
+      const monthStr = month.toString().padStart(2, "0");
+      const dayStr = day.toString().padStart(2, "0");
+      return `${yearStr}-${monthStr}-${dayStr}`;
+    } catch {
+      return null;
+    }
+  };
+
   const createDayGrid = () => {
     const days = [];
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+
     for (let day = 1; day <= 31; day++) {
-      // Extract day from date string (YYYY-MM-DD format)
-      const reflection = reflections.find((r) => {
-        const dateDay = parseInt(r.date.split("-")[2]);
-        return dateDay === day;
-      });
+      // Calculate the date string for this day
+      const dateString = getDateFromDay(day, currentMonth, currentYear);
+
+      // Find reflection by matching the full date string
+      const reflection = dateString
+        ? reflections.find((r) => r.date === dateString)
+        : null;
       const habitProgress = reflection?.habitProgress || null;
+
       days.push({ day, habitProgress });
     }
     return days;
