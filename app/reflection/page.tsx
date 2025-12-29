@@ -19,6 +19,7 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { addReflection } from "@/lib/repository";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -56,17 +57,16 @@ export default function ReflectionPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/reflection", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({...formData, userName : user?.displayName, habitId : user?.habitId}),
+      const result = await addReflection({
+        userId: formData.userId,
+        habitProgress: formData.habitProgress,
+        reflection: formData.reflection,
+        date: formData.date,
+        userName: user?.displayName || undefined,
+        habitId: user?.habitId || undefined,
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (result.success) {
         toast.success("Reflection submitted successfully!");
         // Reset form but keep the user ID
         setFormData({
@@ -76,13 +76,12 @@ export default function ReflectionPage() {
           date: "",
         });
         setDate(undefined);
-      } else if (response.status === 409 && data.error === "DUPLICATE_ENTRY") {
-        toast.error(
-          data.message || "You have already submitted a reflection for this day"
-        );
       } else {
-        toast.error(data.error || "Failed to submit reflection");
-        console.error("Failed to submit reflection");
+        if (result.error === "DUPLICATE_ENTRY") {
+          toast.error("You have already submitted a reflection for this day");
+        } else {
+          toast.error(result.error || "Failed to submit reflection");
+        }
       }
     } catch (error) {
       toast.error("Network error occurred");
@@ -91,7 +90,6 @@ export default function ReflectionPage() {
       setIsSubmitting(false);
     }
   };
-
 
   return (
     <ProtectedRoute>

@@ -15,48 +15,39 @@ import { Calendar, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ProgressGrid from "@/components/ProgressGrid";
-
-interface Reflection {
-  id: string;
-  userId: string;
-  habitProgress: string;
-  reflection: string;
-  date: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { fetchReflections } from "@/lib/utils";
+import { type Reflection } from "@/lib/repository";
 
 export default function ProgressPage() {
   const { user } = useAuth();
   const [reflections, setReflections] = useState<Reflection[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchReflections = async () => {
-    if (!user?.uid) return;
-
-    setLoading(true);
-    try {
-      const currentDate = new Date();
-      const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
-      const currentYear = currentDate.getFullYear();
-
-      const response = await fetch(
-        `/api/reflection?userId=${user.uid}&month=${currentMonth}&year=${currentYear}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        console.log("the value of data", data);
-        setReflections(data.reflections);
-      }
-    } catch (error) {
-      console.error("Error fetching reflections:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchReflections();
+    const loadReflections = async () => {
+      if (!user?.uid) return;
+
+      setLoading(true);
+      try {
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
+        const currentYear = currentDate.getFullYear();
+
+        const data = await fetchReflections({
+          userId: user.uid,
+          month: currentMonth,
+          year: currentYear,
+        });
+        console.log("the value of data", data);
+        setReflections(data);
+      } catch (error) {
+        console.error("Error fetching reflections:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReflections();
   }, [user?.uid]);
 
   const getProgressColor = (progress: string) => {
@@ -79,8 +70,6 @@ export default function ProgressPage() {
     const uniqueDates = new Set(reflections.map((r) => r.date));
     return uniqueDates.size;
   };
-
-
 
   return (
     <ProtectedRoute>
