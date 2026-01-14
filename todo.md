@@ -1,0 +1,5 @@
+- Add zod validations wherever there are user inputs.
+- Add types for each table
+- Add pro page to protected route
+- If user already has a subscription don't let him go to pro page
+- 
